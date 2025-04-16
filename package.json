@@ -1,18 +1,22 @@
 {
   "name": "train6",
   "version": "1.0.0",
+  "description": "Train Tracking Backend",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "keywords": ["express", "mongoose", "train", "tracking", "api"],
+  "author": "Milon Mete",
+  "license": "MIT",
   "dependencies": {
     "express": "^4.18.4",
     "mongoose": "^7.4.2",
+    "dotenv": "^16.4.5",
+    "cors": "^2.8.5"
   },
- 
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
 }
