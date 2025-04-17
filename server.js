@@ -7,8 +7,7 @@ const app = express();
 // Enable CORS for your frontend
 app.use(cors({
   origin: [
-    'https://your-new-frontend.netlify.app', // Update with your new frontend URL
-    'http://localhost:3000' // For local development
+    'https://submit-splendid-queijadas-fe8409.netlify.app/', // Update with your new frontend URL
   ],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type'],
