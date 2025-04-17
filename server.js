@@ -1,13 +1,13 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const bcrypt = require('bcrypt'); // Added for password hashing
+const bcrypt = require('bcrypt');
 const app = express();
 
 // Enable CORS for your frontend
 app.use(cors({
   origin: [
-    'https://submit-splendid-queijadas-fe8409.netlify.app', // Update with your new frontend URL
+    'https://submit-splendid-queijadas-fe8409.netlify.app',
   ],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type'],
@@ -26,8 +26,8 @@ mongoose.connect(process.env.MONGODB_URI, {
 // Define User Schema for redemption
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, trim: true },
-  password: { type: String, required: true }, // Store hashed password
-  redemptionCode: { type: String, default: null }, // Store redemption code
+  password: { type: String, required: true },
+  redemptionCode: { type: String, default: null },
   timestamp: { type: Date, default: Date.now }
 });
 const User = mongoose.model('User', userSchema);
@@ -48,23 +48,18 @@ app.post('/api/redeem', async (req, res) => {
   }
 
   try {
-    // Check if user exists
     let user = await User.findOne({ email });
     if (user) {
-      // Validate password (if you’re implementing authentication)
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
         return res.status(401).json({ error: 'Invalid password' });
       }
     } else {
-      // Create new user with hashed password
       const hashedPassword = await bcrypt.hash(password, 10);
       user = new User({ email, password: hashedPassword });
     }
 
-    // Redemption logic (customize based on your needs)
-    // Example: Generate or retrieve a redemption code
-    const redemptionCode = user.redemptionCode || generateRedemptionCode(); // Implement this function
+    const redemptionCode = user.redemptionCode || generateRedemptionCode(); // Generate if not already assigned
     user.redemptionCode = redemptionCode;
     await user.save();
 
@@ -76,10 +71,14 @@ app.post('/api/redeem', async (req, res) => {
   }
 });
 
-// Example function to generate a redemption code (customize as needed)
-function generateRedemptionCode() {
-  // Replace with actual logic to generate or retrieve a valid Google Play code
-  return 'PLAY-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+// New improved function to generate a 16-char alphanumeric code like M57BO7XJLURCY08W
+function generateRedemptionCode(length = 16) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < length; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
 }
 
 // Error handling middleware
