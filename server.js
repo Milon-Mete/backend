@@ -1,4 +1,4 @@
-const express = require('mongoose');
+const express = require('express'); // Fixed: Correctly import express
 const mongoose = require('mongoose');
 const cors = require('cors');
 const app = express();
@@ -8,8 +8,6 @@ app.use(cors({
   origin: [
     'https://submit-splendid-queijadas-fe8409.netlify.app',
     'https://dashboard-tubular-nougat-752387.netlify.app',
-    'http://localhost:3000',
-    'http://localhost:5173' // For Vite or other local dev servers
   ],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type'],
@@ -26,13 +24,18 @@ mongoose.connect(process.env.MONGODB_URI, {
     console.log('Connected to MongoDB');
     // Insert an example score
     try {
-      const exampleScore = new Score({
-        name: 'Example User',
-        score: 100,
-        timestamp: new Date()
-      });
-      await exampleScore.save();
-      console.log('Example score inserted:', exampleScore);
+      const existingScore = await Score.findOne({ name: 'Example User' });
+      if (!existingScore) {
+        const exampleScore = new Score({
+          name: 'Example User',
+          score: 100,
+          timestamp: new Date()
+        });
+        await exampleScore.save();
+        console.log('Example score inserted:', exampleScore);
+      } else {
+        console.log('Example score already exists');
+      }
     } catch (error) {
       console.error('Error inserting example score:', error);
     }
