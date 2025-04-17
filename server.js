@@ -1,13 +1,14 @@
-const express = require('express'); // Fixed: Correctly import express
+const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const bcrypt = require('bcrypt'); // Added for password hashing
 const app = express();
 
-// Enable CORS for Netlify frontends and local development
+// Enable CORS for your frontend
 app.use(cors({
   origin: [
-    'https://submit-splendid-queijadas-fe8409.netlify.app',
-    'https://dashboard-tubular-nougat-752387.netlify.app',
+    'https://your-new-frontend.netlify.app', // Update with your new frontend URL
+    'http://localhost:3000' // For local development
   ],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type'],
@@ -15,76 +16,72 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Connect to MongoDB (use environment variable for MongoDB URI)
+// Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-  .then(async () => {
-    console.log('Connected to MongoDB');
-    // Insert an example score
-    try {
-      const existingScore = await Score.findOne({ name: 'Example User' });
-      if (!existingScore) {
-        const exampleScore = new Score({
-          name: 'Example User',
-          score: 100,
-          timestamp: new Date()
-        });
-        await exampleScore.save();
-        console.log('Example score inserted:', exampleScore);
-      } else {
-        console.log('Example score already exists');
-      }
-    } catch (error) {
-      console.error('Error inserting example score:', error);
-    }
-  })
+  .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Define Score Schema
-const scoreSchema = new mongoose.Schema({
-  name: { type: String, required: true, trim: true },
-  score: { type: Number, required: true },
+// Define User Schema for redemption
+const userSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true, trim: true },
+  password: { type: String, required: true }, // Store hashed password
+  redemptionCode: { type: String, default: null }, // Store redemption code
   timestamp: { type: Date, default: Date.now }
 });
-const Score = mongoose.model('Score', scoreSchema);
+const User = mongoose.model('User', userSchema);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
 });
 
-// API to submit a score
-app.post('/api/scores', async (req, res) => {
-  console.log('Received POST /api/scores:', req.body);
-  const { name, score } = req.body;
-  if (!name || typeof score !== 'number') {
-    console.log('Validation failed: Name or score invalid');
-    return res.status(400).json({ error: 'Name and a valid score are required' });
+// API to redeem a code
+app.post('/api/redeem', async (req, res) => {
+  console.log('Received POST /api/redeem:', req.body);
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    console.log('Validation failed: Email or password missing');
+    return res.status(400).json({ error: 'Email and password are required' });
   }
+
   try {
-    const newScore = new Score({ name, score });
-    await newScore.save();
-    console.log('Score saved:', newScore);
-    res.status(201).json({ message: 'Score submitted successfully', data: newScore });
+    // Check if user exists
+    let user = await User.findOne({ email });
+    if (user) {
+      // Validate password (if you’re implementing authentication)
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Invalid password' });
+      }
+    } else {
+      // Create new user with hashed password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      user = new User({ email, password: hashedPassword });
+    }
+
+    // Redemption logic (customize based on your needs)
+    // Example: Generate or retrieve a redemption code
+    const redemptionCode = user.redemptionCode || generateRedemptionCode(); // Implement this function
+    user.redemptionCode = redemptionCode;
+    await user.save();
+
+    console.log('Redemption processed:', { email, redemptionCode });
+    res.status(201).json({ message: 'Code redeemed successfully', code: redemptionCode });
   } catch (error) {
-    console.error('Error saving score:', error);
-    res.status(500).json({ error: 'Failed to submit score' });
+    console.error('Error processing redemption:', error);
+    res.status(500).json({ error: 'Failed to redeem code' });
   }
 });
 
-// API to get all scores
-app.get('/api/scores', async (req, res) => {
-  console.log('Received GET /api/scores');
-  try {
-    const scores = await Score.find().sort({ timestamp: -1 }).limit(100);
-    res.json(scores);
-  } catch (error) {
-    console.error('Error fetching scores:', error);
-    res.status(500).json({ error: 'Failed to fetch scores' });
-  }
-});
+// Example function to generate a redemption code (customize as needed)
+function generateRedemptionCode() {
+  // Replace with actual logic to generate or retrieve a valid Google Play code
+  return 'PLAY-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
